@@ -14,3 +14,4 @@ export const STRINGS = {
   NOTE_REGION_LABEL: 'Sticky notes',
   NOTE_COUNT_PREFIX: 'Catatan',
 } as const;
+

@@ -22,6 +22,8 @@ export class StickyDotWidget {
   private deleteTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private toastTimer: ReturnType<typeof setTimeout> | null = null;
   private unsubscribeStorage: (() => void) | null = null;
+  private lastSavedJson = '';
+  private isRendering = false;
 
   private debouncedSave = debounce(() => {
     this.persistState();
@@ -35,7 +37,7 @@ export class StickyDotWidget {
 
     this.host = document.createElement('div');
     this.host.id = CONFIG.HOST_ELEMENT_ID;
-    this.host.style.cssText = `position: fixed; top: ${CONFIG.TOP_OFFSET_PX}px; right: ${CONFIG.RIGHT_OFFSET_PX}px; z-index: ${CONFIG.Z_INDEX}; all: initial;`;
+    this.host.style.cssText = `all: initial; position: fixed !important; top: ${CONFIG.TOP_OFFSET_PX}px !important; right: ${CONFIG.RIGHT_OFFSET_PX}px !important; z-index: ${CONFIG.Z_INDEX} !important; display: block !important;`;
 
     this.shadow = this.host.attachShadow({ mode: 'open' });
 
@@ -52,13 +54,15 @@ export class StickyDotWidget {
 
     // Load initial state
     this.state = await loadState();
+    this.lastSavedJson = JSON.stringify(this.state);
 
     // Subscribe to external storage updates (other tabs)
     this.unsubscribeStorage = subscribeState((externalState) => {
       this.handleExternalState(externalState);
     });
 
-    document.documentElement.appendChild(this.host);
+    const targetParent = document.body || document.documentElement;
+    targetParent.appendChild(this.host);
     this.render();
   }
 
@@ -75,6 +79,8 @@ export class StickyDotWidget {
   }
 
   private async persistState(): Promise<void> {
+    const json = JSON.stringify(this.state);
+    this.lastSavedJson = json;
     const success = await saveState(this.state);
     if (!success) {
       this.showToast(STRINGS.SAVE_ERROR);
@@ -82,11 +88,31 @@ export class StickyDotWidget {
   }
 
   private handleExternalState(externalState: StoredState): void {
-    // If currently editing a note, preserve local text for that note
-    if (this.focusedNoteId) {
-      const localEditingNote = this.state.notes.find((n) => n.id === this.focusedNoteId);
+    const incomingJson = JSON.stringify(externalState);
+    // Ignore storage events triggered by our own local save
+    if (incomingJson === this.lastSavedJson || incomingJson === JSON.stringify(this.state)) {
+      return;
+    }
+
+    this.lastSavedJson = incomingJson;
+
+    // Track cursor and selection if user is currently editing a note
+    let cursorStart: number | null = null;
+    let cursorEnd: number | null = null;
+    const focusedId = this.focusedNoteId;
+
+    if (focusedId && this.shadow) {
+      const activeTextarea = this.shadow.querySelector<HTMLTextAreaElement>(
+        `.sd-note-card[data-id="${focusedId}"] .sd-textarea`
+      );
+      if (activeTextarea) {
+        cursorStart = activeTextarea.selectionStart;
+        cursorEnd = activeTextarea.selectionEnd;
+      }
+
+      const localEditingNote = this.state.notes.find((n) => n.id === focusedId);
       if (localEditingNote) {
-        const extIndex = externalState.notes.findIndex((n) => n.id === this.focusedNoteId);
+        const extIndex = externalState.notes.findIndex((n) => n.id === focusedId);
         if (extIndex !== -1) {
           externalState.notes[extIndex] = { ...localEditingNote };
         }
@@ -95,36 +121,57 @@ export class StickyDotWidget {
 
     this.state = externalState;
     this.render();
+
+    // Restore focus and cursor position after re-rendering external updates
+    if (focusedId && cursorStart !== null && this.shadow) {
+      requestAnimationFrame(() => {
+        if (!this.shadow) return;
+        const restoredTextarea = this.shadow.querySelector<HTMLTextAreaElement>(
+          `.sd-note-card[data-id="${focusedId}"] .sd-textarea`
+        );
+        if (restoredTextarea) {
+          restoredTextarea.focus();
+          if (cursorStart !== null && cursorEnd !== null) {
+            restoredTextarea.setSelectionRange(cursorStart, cursorEnd);
+          }
+        }
+      });
+    }
   }
 
   private render(): void {
     if (!this.shadow) return;
 
-    // Retain style element if adoptedStyleSheets not supported
-    const styleEl = this.shadow.querySelector('style');
-    this.shadow.innerHTML = '';
-    if (styleEl) {
-      this.shadow.appendChild(styleEl);
-    }
-
-    const container = document.createElement('div');
-    container.className = 'sd-container';
-
-    // Handle Esc key to collapse
-    container.addEventListener('keydown', (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && this.state.ui.expanded) {
-        e.stopPropagation();
-        this.toggleExpanded(false);
+    this.isRendering = true;
+    try {
+      // Retain style element if adoptedStyleSheets not supported
+      const styleEl = this.shadow.querySelector('style');
+      this.shadow.innerHTML = '';
+      if (styleEl) {
+        this.shadow.appendChild(styleEl);
       }
-    });
 
-    if (this.state.ui.expanded) {
-      container.appendChild(this.createPanelElement());
-    } else {
-      container.appendChild(this.createChipElement());
+      const container = document.createElement('div');
+      container.className = 'sd-container';
+
+      // Handle Esc key to collapse
+      container.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.key === 'Escape' && this.state.ui.expanded) {
+          e.stopPropagation();
+          this.toggleExpanded(false);
+        }
+      });
+
+      if (this.state.ui.expanded) {
+        container.appendChild(this.createPanelElement());
+      } else {
+        container.appendChild(this.createChipElement());
+      }
+
+      this.shadow.appendChild(container);
+    } finally {
+      this.isRendering = false;
     }
-
-    this.shadow.appendChild(container);
   }
 
   private createChipElement(): HTMLElement {
@@ -339,6 +386,7 @@ export class StickyDotWidget {
     });
 
     textarea.addEventListener('blur', () => {
+      if (this.isRendering) return;
       if (this.focusedNoteId === note.id) {
         this.focusedNoteId = null;
       }

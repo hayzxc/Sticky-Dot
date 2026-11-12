@@ -26,3 +26,4 @@
 - Manifest `name`: `Sticky Dot`
 - Description: `Sticky notes kecil untuk produktivitas khusus ft.karantinaindonesia.go.id`
 - Host id: `#barantin-sticky-host` (sesuai spec AGENTS.md)
+

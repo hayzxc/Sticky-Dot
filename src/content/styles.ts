@@ -5,6 +5,8 @@ export const STYLES = `
   top: 12px;
   right: 12px;
   z-index: 2147483647;
+  display: block;
+  pointer-events: auto;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   font-size: 13px;
   line-height: 1.4;
@@ -417,3 +419,4 @@ export const STYLES = `
   transform: translateY(0);
 }
 `;
+

@@ -19,3 +19,4 @@ export interface StoredState {
 }
 
 export type StorageListener = (newState: StoredState) => void;
+

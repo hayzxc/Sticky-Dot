@@ -37,13 +37,13 @@ describe('StickyDotWidget Integration', () => {
     vi.restoreAllMocks();
   });
 
-  it('mounts host element and shadow root on document.documentElement', async () => {
+  it('mounts host element and shadow root on document.body or document.documentElement', async () => {
     const widget = new StickyDotWidget();
     await widget.mount();
 
     const host = document.getElementById(CONFIG.HOST_ELEMENT_ID);
     expect(host).not.toBeNull();
-    expect(host?.parentNode).toBe(document.documentElement);
+    expect(host?.parentNode).toBe(document.body || document.documentElement);
     expect(host?.shadowRoot).not.toBeNull();
   });
 
@@ -169,6 +169,36 @@ describe('StickyDotWidget Integration', () => {
     vi.useRealTimers();
   });
 
+  it('does not destroy or freeze textarea when typing and debounced save triggers', async () => {
+    vi.useFakeTimers();
+
+    const widget = new StickyDotWidget();
+    await widget.mount();
+
+    const host = document.getElementById(CONFIG.HOST_ELEMENT_ID);
+    host?.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.click();
+    host?.shadowRoot?.querySelector<HTMLButtonElement>('.sd-header-actions .sd-icon-btn')?.click();
+
+    const textareaBefore = host?.shadowRoot?.querySelector<HTMLTextAreaElement>('.sd-textarea');
+    expect(textareaBefore).not.toBeNull();
+
+    if (textareaBefore) {
+      textareaBefore.focus();
+      textareaBefore.value = 'Mengetik sesuatu...';
+      textareaBefore.dispatchEvent(new Event('input'));
+
+      // Advance timer to trigger 400ms debounced save
+      vi.advanceTimersByTime(CONFIG.DEBOUNCE_MS + 50);
+
+      // Verify the textarea element reference in the DOM is still identical (not recreated by innerHTML='')
+      const textareaAfter = host?.shadowRoot?.querySelector<HTMLTextAreaElement>('.sd-textarea');
+      expect(textareaAfter).toBe(textareaBefore);
+      expect(textareaAfter?.value).toBe('Mengetik sesuatu...');
+    }
+
+    vi.useRealTimers();
+  });
+
   it('closes panel when Escape is pressed', async () => {
     const widget = new StickyDotWidget();
     await widget.mount();
@@ -186,3 +216,4 @@ describe('StickyDotWidget Integration', () => {
     expect(host?.shadowRoot?.querySelector('.sd-chip')).not.toBeNull();
   });
 });
+

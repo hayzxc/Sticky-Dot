@@ -35,3 +35,4 @@ export function autoGrowTextarea(textarea: HTMLTextAreaElement): void {
   // scrollHeight includes padding
   textarea.style.height = `${Math.max(54, textarea.scrollHeight)}px`;
 }
+

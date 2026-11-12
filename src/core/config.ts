@@ -55,3 +55,4 @@ export const NOTE_COLORS: Record<NoteColor, ColorTheme> = {
 };
 
 export const COLOR_KEYS: NoteColor[] = ['yellow', 'pink', 'blue', 'green', 'orange'];
+
