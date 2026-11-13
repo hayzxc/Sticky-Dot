@@ -88,7 +88,7 @@ describe('StickyDotWidget Integration', () => {
 
     const host = document.getElementById(CONFIG.HOST_ELEMENT_ID);
     expect(host).not.toBeNull();
-    expect(host?.parentNode).toBe(document.body || document.documentElement);
+    expect(host?.parentNode).toBe(document.documentElement);
     expect(host?.shadowRoot).not.toBeNull();
   });
 

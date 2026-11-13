@@ -30,7 +30,7 @@ function installObserver(): void {
     }
   }, 200);
 
-  const targetParent = document.body || document.documentElement;
+  const targetParent = document.documentElement;
   observer = new MutationObserver(() => {
     debouncedRemount?.();
   });

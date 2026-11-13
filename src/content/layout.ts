@@ -229,6 +229,8 @@ export class WidgetLayout {
       const startY = event.clientY;
       const pointerId = event.pointerId;
       let moved = false;
+      let lastMove = 0;
+      let watchdog: ReturnType<typeof setInterval> | null = null;
 
       capturePointer(handle, pointerId);
 
@@ -254,6 +256,7 @@ export class WidgetLayout {
       };
 
       const onPointerMove = (moveEvent: PointerEvent) => {
+        if (moveEvent.pointerId !== pointerId) return;
         const dx = moveEvent.clientX - startX;
         const dy = moveEvent.clientY - startY;
 
@@ -264,6 +267,8 @@ export class WidgetLayout {
           this.callbacks.onInteractionStart?.();
           handle.classList.add('is-dragging');
         }
+
+        lastMove = Date.now();
 
         const viewport = getViewportBounds();
         this.position = clampPosition(
@@ -277,18 +282,27 @@ export class WidgetLayout {
         this.applyPosition();
       };
 
-      const onPointerUp = () => {
+      const onPointerUp = (upEvent?: PointerEvent) => {
+        if (upEvent && upEvent.pointerId !== pointerId) return;
+        if (watchdog) { clearInterval(watchdog); watchdog = null; }
         finish();
         if (moved) {
           this.suppressClick();
         }
       };
 
+      watchdog = setInterval(() => {
+        if (!this.activeCleanup) return;
+        if (moved && Date.now() - lastMove > 1500) {
+          onPointerUp();
+        }
+      }, 500);
+
       this.interacting = false;
       this.activeCleanup = cleanup;
       window.addEventListener('pointermove', onPointerMove);
-      window.addEventListener('pointerup', onPointerUp);
-      window.addEventListener('pointercancel', onPointerUp);
+      window.addEventListener('pointerup', onPointerUp, true);
+      window.addEventListener('pointercancel', onPointerUp, true);
     });
   }
 

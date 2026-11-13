@@ -124,7 +124,7 @@ export class StickyDotWidget {
     window.addEventListener('blur', this.flushOnExit);
     document.addEventListener('visibilitychange', this.flushWhenHidden);
 
-    const targetParent = document.body || document.documentElement;
+    const targetParent = document.documentElement;
     targetParent.appendChild(this.host);
     this.render();
   }
