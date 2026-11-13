@@ -229,6 +229,8 @@ export class WidgetLayout {
       const startY = event.clientY;
       const pointerId = event.pointerId;
       let moved = false;
+      let lastPointerX = event.clientX;
+      let lastPointerY = event.clientY;
       let lastMove = 0;
       let watchdog: ReturnType<typeof setInterval> | null = null;
 
@@ -257,6 +259,9 @@ export class WidgetLayout {
 
       const onPointerMove = (moveEvent: PointerEvent) => {
         if (moveEvent.pointerId !== pointerId) return;
+        if (moveEvent.clientX === lastPointerX && moveEvent.clientY === lastPointerY) return;
+        lastPointerX = moveEvent.clientX;
+        lastPointerY = moveEvent.clientY;
         const dx = moveEvent.clientX - startX;
         const dy = moveEvent.clientY - startY;
 
@@ -323,6 +328,8 @@ export class WidgetLayout {
       const startY = event.clientY;
       const pointerId = event.pointerId;
       let moved = false;
+      let lastPointerX = event.clientX;
+      let lastPointerY = event.clientY;
 
       capturePointer(grip, pointerId);
 
@@ -348,6 +355,10 @@ export class WidgetLayout {
       };
 
       const onPointerMove = (moveEvent: PointerEvent) => {
+        if (moveEvent.pointerId !== pointerId) return;
+        if (moveEvent.clientX === lastPointerX && moveEvent.clientY === lastPointerY) return;
+        lastPointerX = moveEvent.clientX;
+        lastPointerY = moveEvent.clientY;
         const dx = moveEvent.clientX - startX;
         const dy = moveEvent.clientY - startY;
 
