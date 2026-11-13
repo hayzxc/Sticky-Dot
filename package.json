@@ -1,7 +1,7 @@
 {
   "name": "sticky-dot",
   "version": "1.0.0",
-  "description": "Sticky notes kecil untuk produktivitas khusus ft.karantinaindonesia.go.id",
+  "description": "Sticky notes kecil untuk ft.karantinaindonesia.go.id dan situs lain pilihan Anda",
   "type": "module",
   "scripts": {
     "build": "node build.mjs",

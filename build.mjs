@@ -37,7 +37,7 @@ const buildOptions = {
   format: 'iife',
   target: ['es2022'],
   sourcemap: false,
-  minify: false,
+  minify: true,
   logLevel: 'info',
 };
 

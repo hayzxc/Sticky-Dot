@@ -3,6 +3,8 @@ import {
   DEFAULT_STATE,
   sanitizeColor,
   sanitizeNote,
+  sanitizePosition,
+  sanitizeSize,
   migrate,
   loadState,
   saveState,
@@ -47,10 +49,63 @@ describe('Store & Data Model', () => {
       expect(note).toEqual({
         id: 'note-1',
         text: 'Halo barantin',
+        paragraphs: [
+          {
+            id: 'note-1__p0',
+            text: 'Halo barantin',
+            checked: false,
+          },
+        ],
         color: 'pink',
         createdAt: 1000,
         updatedAt: 2000,
       });
+    });
+
+    it('splits legacy note text into paragraphs with deterministic ids', () => {
+      const note = sanitizeNote({
+        id: 'note-legacy',
+        text: 'Baris pertama\nBaris kedua',
+        color: 'yellow',
+      });
+
+      expect(note?.paragraphs).toEqual([
+        { id: 'note-legacy__p0', text: 'Baris pertama', checked: false },
+        { id: 'note-legacy__p1', text: 'Baris kedua', checked: false },
+      ]);
+      expect(note?.text).toBe('Baris pertama\nBaris kedua');
+    });
+
+    it('preserves paragraph ids and checked state', () => {
+      const note = sanitizeNote({
+        id: 'note-1',
+        text: 'abaikan teks lama',
+        paragraphs: [
+          { id: 'p1', text: 'Sudah selesai', checked: true },
+          { id: 'p2', text: 'Belum selesai', checked: false },
+        ],
+        color: 'green',
+      });
+
+      expect(note?.paragraphs).toEqual([
+        { id: 'p1', text: 'Sudah selesai', checked: true },
+        { id: 'p2', text: 'Belum selesai', checked: false },
+      ]);
+      expect(note?.text).toBe('Sudah selesai\nBelum selesai');
+    });
+
+    it('caps combined paragraph text at MAX_CHARS_PER_NOTE including newlines', () => {
+      const note = sanitizeNote({
+        id: 'note-1',
+        paragraphs: [
+          { id: 'p1', text: 'a'.repeat(CONFIG.MAX_CHARS_PER_NOTE), checked: false },
+          { id: 'p2', text: 'tidak muat', checked: false },
+        ],
+      });
+
+      expect(note?.text.length).toBe(CONFIG.MAX_CHARS_PER_NOTE);
+      expect(note?.paragraphs).toHaveLength(1);
+      expect(note?.paragraphs[0].text.length).toBe(CONFIG.MAX_CHARS_PER_NOTE);
     });
 
     it('clamps text exceeding MAX_CHARS_PER_NOTE', () => {
@@ -81,6 +136,46 @@ describe('Store & Data Model', () => {
       });
 
       expect(note?.color).toBe('yellow');
+    });
+  });
+
+  describe('sanitizePosition', () => {
+    it('accepts finite coordinates and rounds them', () => {
+      expect(sanitizePosition({ x: 120.4, y: 80.6 })).toEqual({ x: 120, y: 81 });
+    });
+
+    it('clamps negative coordinates to 0', () => {
+      expect(sanitizePosition({ x: -50, y: -1 })).toEqual({ x: 0, y: 0 });
+    });
+
+    it('returns null for invalid or missing coordinates', () => {
+      expect(sanitizePosition(null)).toBeNull();
+      expect(sanitizePosition({})).toBeNull();
+      expect(sanitizePosition({ x: Number.NaN, y: 10 })).toBeNull();
+      expect(sanitizePosition({ x: 10, y: '20' })).toBeNull();
+    });
+  });
+
+  describe('sanitizeSize', () => {
+    it('clamps size to configured minimum and maximum', () => {
+      expect(sanitizeSize({ width: 10, height: 10 })).toEqual({
+        width: CONFIG.PANEL_MIN_WIDTH,
+        height: CONFIG.PANEL_MIN_HEIGHT,
+      });
+      expect(sanitizeSize({ width: 9999, height: 9999 })).toEqual({
+        width: CONFIG.PANEL_MAX_WIDTH,
+        height: CONFIG.PANEL_MAX_HEIGHT,
+      });
+    });
+
+    it('rounds valid sizes', () => {
+      expect(sanitizeSize({ width: 320.7, height: 400.2 })).toEqual({ width: 321, height: 400 });
+    });
+
+    it('returns null for invalid sizes', () => {
+      expect(sanitizeSize(undefined)).toBeNull();
+      expect(sanitizeSize({ width: '320', height: 400 })).toBeNull();
+      expect(sanitizeSize({ width: Number.POSITIVE_INFINITY, height: 400 })).toBeNull();
     });
   });
 
@@ -132,6 +227,32 @@ describe('Store & Data Model', () => {
       expect(result.notes.length).toBe(2);
       expect(result.notes[0].id).toBe('valid-1');
       expect(result.notes[1].id).toBe('valid-2');
+    });
+
+    it('preserves valid saved layout geometry', () => {
+      const result = migrate({
+        schemaVersion: 1,
+        notes: [],
+        ui: {
+          expanded: true,
+          position: { x: 140.6, y: 72.2 },
+          size: { width: 420, height: 500 },
+        },
+      });
+
+      expect(result.ui.position).toEqual({ x: 141, y: 72 });
+      expect(result.ui.size).toEqual({ width: 420, height: 500 });
+    });
+
+    it('defaults missing or invalid layout geometry to null', () => {
+      const result = migrate({
+        schemaVersion: 1,
+        notes: [],
+        ui: { expanded: false, position: 'top-right', size: { width: 'wide' } },
+      });
+
+      expect(result.ui.position).toBeNull();
+      expect(result.ui.size).toBeNull();
     });
   });
 
@@ -204,6 +325,9 @@ describe('Store & Data Model', () => {
       const note: Note = {
         id: 'test-id',
         text: 'Ini catatan uji coba',
+        paragraphs: [
+          { id: 'test-para', text: 'Ini catatan uji coba', checked: true },
+        ],
         color: 'pink',
         createdAt: 1000,
         updatedAt: 1000,
@@ -212,7 +336,7 @@ describe('Store & Data Model', () => {
       const stateToSave = {
         schemaVersion: 1 as const,
         notes: [note],
-        ui: { expanded: true },
+        ui: { expanded: true, position: { x: 100, y: 60 }, size: { width: 360, height: 420 } },
       };
 
       const saved = await saveState(stateToSave);
@@ -222,8 +346,13 @@ describe('Store & Data Model', () => {
       expect(loaded.notes.length).toBe(1);
       expect(loaded.notes[0].id).toBe('test-id');
       expect(loaded.notes[0].text).toBe('Ini catatan uji coba');
+      expect(loaded.notes[0].paragraphs).toEqual([
+        { id: 'test-para', text: 'Ini catatan uji coba', checked: true },
+      ]);
       expect(loaded.notes[0].color).toBe('pink');
       expect(loaded.ui.expanded).toBe(true);
+      expect(loaded.ui.position).toEqual({ x: 100, y: 60 });
+      expect(loaded.ui.size).toEqual({ width: 360, height: 420 });
     });
   });
 });

@@ -2,14 +2,14 @@
   "manifest_version": 3,
   "name": "Sticky Dot",
   "version": "1.0.0",
-  "description": "Sticky notes kecil untuk produktivitas khusus ft.karantinaindonesia.go.id",
+  "description": "Sticky notes kecil untuk ft.karantinaindonesia.go.id dan situs lain pilihan Anda",
   "permissions": [
     "storage"
   ],
   "content_scripts": [
     {
       "matches": [
-        "https://ft.karantinaindonesia.go.id/*"
+        "*://*/*"
       ],
       "js": [
         "content.js"

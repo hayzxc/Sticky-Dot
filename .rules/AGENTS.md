@@ -7,7 +7,7 @@ Bangun ekstensi Chromium MV3 "Barantin Sticky Notes" sesuai spec di folder ini. 
 1. Baca seluruh spec dulu (urutan di `README.md`) sebelum menulis kode.
 2. Kerjakan task sesuai urutan `TASKS.md`; satu milestone selesai dan terverifikasi sebelum lanjut.
 3. TypeScript strict, tanpa `any` kecuali dijustifikasi di komentar.
-4. Widget **hanya** untuk `https://ft.karantinaindonesia.go.id/*`. Jangan melebarkan `matches`.
+4. Widget default hanya untuk `https://ft.karantinaindonesia.go.id/*`. Content script boleh memakai `matches: ["*://*/*"]` **hanya** untuk mendukung allowlist situs yang dapat diubah pengguna (fitur multi-situs yang disetujui); widget wajib digating `isOriginAllowed()` dan tidak boleh dipasang di origin lain tanpa izin pengguna.
 5. Permission hanya `storage`. Jangan tambah permission apa pun tanpa persetujuan eksplisit user.
 6. Semua UI di dalam Shadow DOM; satu-satunya elemen yang ditambahkan ke halaman adalah host `#barantin-sticky-host`.
 7. Data user ditulis lewat `textContent`/`value`, bukan `innerHTML`.

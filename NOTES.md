@@ -19,11 +19,18 @@
   - **Keputusan**: Konfigurasi `all_frames: false` pada `manifest.json` sudah tepat dan aman.
 - **OQ3: Subdomain**
   - Domain target murni `https://ft.karantinaindonesia.go.id/*`.
-  - Tidak ada kebutuhan subdomain lain untuk saat ini.
+  - Tidak ada kebutuhan subdomain lain saat recon. (Diperluas: pengguna sekarang dapat menambahkan origin lain lewat pengaturan situs.)
 
 ### 3. Identitas Ekstensi
 - Permintaan user: Nama "Sticky Dot" (sesuai prompt: *"build stcky notes named sticky dot"*).
 - Manifest `name`: `Sticky Dot`
-- Description: `Sticky notes kecil untuk produktivitas khusus ft.karantinaindonesia.go.id`
+- Description: `Sticky notes kecil untuk ft.karantinaindonesia.go.id dan situs lain pilihan Anda`
 - Host id: `#barantin-sticky-host` (sesuai spec AGENTS.md)
+
+### 4. Keputusan Multi-Situs (permintaan lanjutan)
+- Content script `matches: ["*://*/*"]`; widget hanya dipasang jika `isOriginAllowed(origin, settings)`.
+- Allowlist disimpan terpisah di `chrome.storage.local` key `barantinStickyNotesSettings`; situs utama tidak disimpan karena selalu diizinkan.
+- Input menerima domain/URL, dinormalkan ke origin http/https, maksimal 50 situs tambahan.
+- Opsi "Tampilkan di semua website" default mati; perubahan settings reaktif lewat `storage.onChanged` di semua tab.
+- Konsekuensi: Chrome menampilkan peringatan akses luas; didokumentasikan di README dan `SECURITY-PRIVACY.md`.
 

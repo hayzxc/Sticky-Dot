@@ -1,36 +1,38 @@
 import { CONFIG } from '../core/config';
 import { StickyDotWidget } from './widget';
 import { debounce } from './events';
+import { isOriginAllowed, loadSettings, subscribeSettings } from '../core/settings';
+import type { WidgetSettings } from '../core/types';
 
-function init(): void {
-  // Defense in depth: Verify target origin
-  if (window.location.origin !== CONFIG.TARGET_ORIGIN) {
-    console.warn(
-      `[StickyDot] Content script aktif tetapi diabaikan karena origin tidak cocok: ${window.location.origin} (Target: ${CONFIG.TARGET_ORIGIN})`
-    );
-    return;
+let widget: StickyDotWidget | null = null;
+let initialized = false;
+let latestSettings: WidgetSettings | null = null;
+let observer: MutationObserver | null = null;
+let debouncedRemount: ReturnType<typeof debounce> | null = null;
+
+function mountWidget(): void {
+  if (!widget) {
+    widget = new StickyDotWidget();
   }
 
-  // Prevent double mount
-  if (document.getElementById(CONFIG.HOST_ELEMENT_ID)) {
-    return;
-  }
+  void widget.mount().catch((error) => {
+    console.error('[StickyDot] Gagal memasang widget:', error);
+  });
+}
 
-  const widget = new StickyDotWidget();
-  widget.mount();
-  console.log('[StickyDot] Widget berhasil dimuat di pojok kanan atas.');
+function installObserver(): void {
+  if (observer) return;
 
-  // Lightweight MutationObserver to re-attach if website script removes host
-  const debouncedRemount = debounce(() => {
+  debouncedRemount = debounce(() => {
+    if (!widget) return;
     if (!document.getElementById(CONFIG.HOST_ELEMENT_ID)) {
-      widget.mount();
-      console.log('[StickyDot] Widget dipasang kembali setelah dihapus oleh halaman.');
+      void widget.mount();
     }
   }, 200);
 
   const targetParent = document.body || document.documentElement;
-  const observer = new MutationObserver(() => {
-    debouncedRemount();
+  observer = new MutationObserver(() => {
+    debouncedRemount?.();
   });
 
   observer.observe(targetParent, {
@@ -39,10 +41,49 @@ function init(): void {
   });
 }
 
-// Execute when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => init(), { once: true });
-} else {
-  init();
+function uninstallObserver(): void {
+  observer?.disconnect();
+  observer = null;
+  debouncedRemount?.cancel();
+  debouncedRemount = null;
 }
 
+function syncWidget(settings: WidgetSettings): void {
+  const allowed = isOriginAllowed(window.location.origin, settings);
+
+  if (allowed) {
+    if (!document.getElementById(CONFIG.HOST_ELEMENT_ID)) {
+      mountWidget();
+    }
+    installObserver();
+    return;
+  }
+
+  if (widget) {
+    widget.unmount();
+    widget = null;
+  }
+  uninstallObserver();
+}
+
+async function init(): Promise<void> {
+  if (initialized) return;
+  initialized = true;
+
+  subscribeSettings((nextSettings) => {
+    latestSettings = nextSettings;
+    syncWidget(nextSettings);
+  });
+
+  const settings = await loadSettings();
+  syncWidget(latestSettings ?? settings);
+}
+
+// Execute when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    void init();
+  }, { once: true });
+} else {
+  void init();
+}

@@ -4,7 +4,7 @@
 export function debounce<T extends (...args: unknown[]) => void>(
   func: T,
   waitMs: number
-): { (...args: Parameters<T>): void; cancel: () => void } {
+): { (...args: Parameters<T>): void; cancel: () => void; isPending: () => boolean } {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
   const debounced = (...args: Parameters<T>) => {
@@ -24,15 +24,17 @@ export function debounce<T extends (...args: unknown[]) => void>(
     }
   };
 
+  debounced.isPending = () => timeoutId !== null;
+
   return debounced;
 }
 
 /**
  * Automatically adjusts textarea height based on content
  */
-export function autoGrowTextarea(textarea: HTMLTextAreaElement): void {
+export function autoGrowTextarea(textarea: HTMLTextAreaElement, minHeight = 22): void {
   textarea.style.height = 'auto';
   // scrollHeight includes padding
-  textarea.style.height = `${Math.max(54, textarea.scrollHeight)}px`;
+  textarea.style.height = `${Math.max(minHeight, textarea.scrollHeight)}px`;
 }
 

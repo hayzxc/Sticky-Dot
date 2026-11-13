@@ -1,13 +1,65 @@
 import { CONFIG, COLOR_KEYS } from './config';
-import type { Note, NoteColor, StoredState, StorageListener } from './types';
+import type { Note, NoteColor, NoteParagraph, StoredState, StorageListener, WidgetPosition, WidgetSize } from './types';
 
 export const DEFAULT_STATE: StoredState = {
   schemaVersion: 1,
   notes: [],
   ui: {
     expanded: false,
+    position: null,
+    size: null,
   },
 };
+
+const POSITION_LIMIT = 100000;
+
+function clampNumber(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+/**
+ * Validates a persisted widget position. Returns null when unset/invalid.
+ */
+export function sanitizePosition(raw: unknown): WidgetPosition | null {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+
+  const obj = raw as Record<string, unknown>;
+  if (
+    typeof obj.x !== 'number' || !Number.isFinite(obj.x) ||
+    typeof obj.y !== 'number' || !Number.isFinite(obj.y)
+  ) {
+    return null;
+  }
+
+  return {
+    x: Math.round(clampNumber(obj.x, 0, POSITION_LIMIT)),
+    y: Math.round(clampNumber(obj.y, 0, POSITION_LIMIT)),
+  };
+}
+
+/**
+ * Validates a persisted panel size. Returns null when unset/invalid.
+ */
+export function sanitizeSize(raw: unknown): WidgetSize | null {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+
+  const obj = raw as Record<string, unknown>;
+  if (
+    typeof obj.width !== 'number' || !Number.isFinite(obj.width) ||
+    typeof obj.height !== 'number' || !Number.isFinite(obj.height)
+  ) {
+    return null;
+  }
+
+  return {
+    width: Math.round(clampNumber(obj.width, CONFIG.PANEL_MIN_WIDTH, CONFIG.PANEL_MAX_WIDTH)),
+    height: Math.round(clampNumber(obj.height, CONFIG.PANEL_MIN_HEIGHT, CONFIG.PANEL_MAX_HEIGHT)),
+  };
+}
 
 /**
  * Validates and normalizes raw color input
@@ -17,6 +69,81 @@ export function sanitizeColor(color: unknown): NoteColor {
     return color as NoteColor;
   }
   return 'yellow';
+}
+
+/**
+ * Memecah teks lama (sebelum fitur checklist) menjadi paragraf.
+ * ID deterministik agar dua tab yang memuat data lama tidak menghasilkan ID berbeda.
+ */
+function paragraphsFromText(noteId: string, text: string): NoteParagraph[] {
+  const lines = text.split('\n');
+  let remaining = CONFIG.MAX_CHARS_PER_NOTE;
+  const paragraphs: NoteParagraph[] = [];
+
+  for (let index = 0; index < lines.length; index++) {
+    const separator = index > 0 ? 1 : 0;
+    if (index > 0 && remaining <= separator) break;
+
+    const allowed = Math.max(0, remaining - separator);
+    const clipped = lines[index].slice(0, allowed);
+
+    paragraphs.push({
+      id: `${noteId}__p${index}`,
+      text: clipped,
+      checked: false,
+    });
+
+    remaining -= separator + clipped.length;
+    if (remaining <= 0) break;
+  }
+
+  return paragraphs.length > 0 ? paragraphs : [{ id: `${noteId}__p0`, text: '', checked: false }];
+}
+
+/**
+ * Validasi paragraf dari storage; kompatibel dengan catatan lama yang hanya punya `text`.
+ * Total teks (termasuk newline) dibatasi MAX_CHARS_PER_NOTE.
+ */
+function sanitizeParagraphs(raw: unknown, noteId: string, fallbackText: string): NoteParagraph[] {
+  const paragraphs: NoteParagraph[] = [];
+  const usedIds = new Set<string>();
+  let remaining = CONFIG.MAX_CHARS_PER_NOTE;
+
+  if (Array.isArray(raw)) {
+    for (const item of raw) {
+      if (!item || typeof item !== 'object') continue;
+
+      const obj = item as Record<string, unknown>;
+      const separator = paragraphs.length > 0 ? 1 : 0;
+      if (paragraphs.length > 0 && remaining <= separator) break;
+
+      const allowed = Math.max(0, remaining - separator);
+      const text = (typeof obj.text === 'string' ? obj.text : '').slice(0, allowed);
+      let id = typeof obj.id === 'string' && obj.id.trim() !== ''
+        ? obj.id
+        : `${noteId}__p${paragraphs.length}`;
+
+      if (usedIds.has(id)) {
+        id = generateParagraphId();
+      }
+      usedIds.add(id);
+
+      paragraphs.push({
+        id,
+        text,
+        checked: obj.checked === true,
+      });
+
+      remaining -= separator + text.length;
+      if (remaining <= 0) break;
+    }
+  }
+
+  if (paragraphs.length === 0) {
+    return paragraphsFromText(noteId, fallbackText.slice(0, CONFIG.MAX_CHARS_PER_NOTE));
+  }
+
+  return paragraphs;
 }
 
 /**
@@ -33,7 +160,9 @@ export function sanitizeNote(raw: unknown): Note | null {
     return null;
   }
 
-  const text = typeof obj.text === 'string' ? obj.text.slice(0, CONFIG.MAX_CHARS_PER_NOTE) : '';
+  const rawText = typeof obj.text === 'string' ? obj.text : '';
+  const paragraphs = sanitizeParagraphs(obj.paragraphs, obj.id, rawText);
+  const text = paragraphs.map((paragraph) => paragraph.text).join('\n');
   const color = sanitizeColor(obj.color);
   const now = Date.now();
   const createdAt = typeof obj.createdAt === 'number' && Number.isFinite(obj.createdAt) ? obj.createdAt : now;
@@ -42,6 +171,7 @@ export function sanitizeNote(raw: unknown): Note | null {
   return {
     id: obj.id,
     text,
+    paragraphs,
     color,
     createdAt,
     updatedAt,
@@ -73,14 +203,20 @@ export function migrate(raw: unknown): StoredState {
       }
     }
 
-    const expanded = obj.ui && typeof obj.ui === 'object' && typeof (obj.ui as Record<string, unknown>).expanded === 'boolean'
-      ? Boolean((obj.ui as Record<string, unknown>).expanded)
-      : false;
+    const ui = obj.ui && typeof obj.ui === 'object'
+      ? (obj.ui as Record<string, unknown>)
+      : {};
+
+    const expanded = typeof ui.expanded === 'boolean' ? ui.expanded : false;
 
     return {
       schemaVersion: 1,
       notes: sanitizedNotes,
-      ui: { expanded },
+      ui: {
+        expanded,
+        position: sanitizePosition(ui.position),
+        size: sanitizeSize(ui.size),
+      },
     };
   }
 
@@ -160,12 +296,20 @@ export function subscribeState(listener: StorageListener): () => void {
 }
 
 /**
- * Helper to generate a unique note ID
+ * Helper to generate a unique ID
  */
-export function generateNoteId(): string {
+function generateId(prefix: string): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
   }
-  return `note_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+}
+
+export function generateNoteId(): string {
+  return generateId('note');
+}
+
+export function generateParagraphId(): string {
+  return generateId('para');
 }
 

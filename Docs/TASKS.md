@@ -12,7 +12,7 @@ Kerjakan berurutan. Centang hanya setelah verifikasi di browser.
 - [x] Skrip `npm run build` dan `npm run watch`.
 
 ## M2 — Mount & Isolasi
-- [x] `main.ts`: guard origin + cegah double-mount.
+- [x] `main.ts`: siklus hidup widget + cegah double-mount (guard origin awal; diganti allowlist di M8).
 - [x] `widget.ts`: host + Shadow DOM + chip 36×36 di kanan atas.
 - [x] Verifikasi M1–M3 pada TEST-PLAN.
 
@@ -39,8 +39,19 @@ Kerjakan berurutan. Centang hanya setelah verifikasi di browser.
 - [x] README instalasi singkat + peringatan privasi.
 - [x] Tag versi 1.0.0.
 
+## M8 — Multi-Situs (allowlist)
+- [x] `settings.ts`: normalisasi origin, sanitasi, load/save/subscribe allowlist.
+- [x] `main.ts`: mount/unmount dinamis berdasarkan `isOriginAllowed`, reaktif terhadap perubahan settings.
+- [x] `manifest.json`: content script `*://*/*`; widget tetap digating allowlist.
+- [x] UI pengaturan situs di panel (tambah/hapus, toggle semua website, situs utama terkunci).
+- [x] Unit & integration test untuk settings dan UI pengaturan.
+- [ ] Verifikasi manual M21–M28 di Chrome/Edge.
+
 ## Backlog v1.1
-- [ ] Draggable + simpan posisi (tetap default kanan atas).
+- [x] Draggable + simpan posisi (tetap default kanan atas).
+- [x] Panel resizable + simpan ukuran (min/max & clamp viewport).
+- [x] Multi-situs: tambah/hapus website lewat pengaturan (allowlist) + opsi semua website.
+- [x] Checklist per paragraf: checkbox, garis coret, Enter/Shift+Enter, migrasi catatan lama.
 - [ ] Export/Import JSON.
 - [ ] Pencarian catatan.
 - [ ] Shortcut keyboard global (mis. Alt+N) via `commands`.
