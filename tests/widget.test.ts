@@ -57,7 +57,7 @@ describe('StickyDotWidget Integration', () => {
     await widget.mount();
 
     const host = document.getElementById(CONFIG.HOST_ELEMENT_ID);
-    host?.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.click();
+    host?.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
     host?.shadowRoot?.querySelector<HTMLButtonElement>('.sd-header-actions .sd-icon-btn')?.click();
 
     const textarea = host?.shadowRoot?.querySelector<HTMLTextAreaElement>('.sd-textarea');
@@ -114,7 +114,7 @@ describe('StickyDotWidget Integration', () => {
     const chip = host?.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip');
     expect(chip).not.toBeNull();
 
-    chip?.click();
+    chip?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
 
     // Now panel should be visible
     const panel = host?.shadowRoot?.querySelector('.sd-panel');
@@ -133,7 +133,7 @@ describe('StickyDotWidget Integration', () => {
 
     const host = document.getElementById(CONFIG.HOST_ELEMENT_ID);
     const chip = host?.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip');
-    chip?.click();
+    chip?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
 
     // Find add button
     const addBtn = host?.shadowRoot?.querySelector<HTMLButtonElement>('.sd-header-actions .sd-icon-btn');
@@ -158,7 +158,7 @@ describe('StickyDotWidget Integration', () => {
     await widget.mount();
 
     const host = document.getElementById(CONFIG.HOST_ELEMENT_ID);
-    host?.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.click();
+    host?.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
     host?.shadowRoot?.querySelector<HTMLButtonElement>('.sd-header-actions .sd-icon-btn')?.click();
 
     const textarea = host?.shadowRoot?.querySelector<HTMLTextAreaElement>('.sd-textarea');
@@ -180,7 +180,7 @@ describe('StickyDotWidget Integration', () => {
       await widget.mount();
 
       const host = document.getElementById(CONFIG.HOST_ELEMENT_ID) as HTMLElement;
-      host.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.click();
+      host.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
       host.shadowRoot?.querySelector<HTMLButtonElement>('.sd-header-actions .sd-icon-btn')?.click();
 
       const textarea = host.shadowRoot?.querySelector<HTMLTextAreaElement>('.sd-textarea');
@@ -293,7 +293,7 @@ describe('StickyDotWidget Integration', () => {
       await widget.mount();
 
       const host = document.getElementById(CONFIG.HOST_ELEMENT_ID) as HTMLElement;
-      host.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.click();
+      host.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
 
       const inputs = host.shadowRoot?.querySelectorAll<HTMLTextAreaElement>('.sd-paragraph-input');
       expect(inputs).toHaveLength(2);
@@ -312,7 +312,7 @@ describe('StickyDotWidget Integration', () => {
     await widget.mount();
 
     const host = document.getElementById(CONFIG.HOST_ELEMENT_ID);
-    host?.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.click();
+    host?.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
     host?.shadowRoot?.querySelector<HTMLButtonElement>('.sd-header-actions .sd-icon-btn')?.click();
 
     let cards = host?.shadowRoot?.querySelectorAll('.sd-note-card');
@@ -352,7 +352,7 @@ describe('StickyDotWidget Integration', () => {
     await widget.mount();
 
     const host = document.getElementById(CONFIG.HOST_ELEMENT_ID);
-    host?.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.click();
+    host?.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
     host?.shadowRoot?.querySelector<HTMLButtonElement>('.sd-header-actions .sd-icon-btn')?.click();
 
     const textareaBefore = host?.shadowRoot?.querySelector<HTMLTextAreaElement>('.sd-textarea');
@@ -380,7 +380,7 @@ describe('StickyDotWidget Integration', () => {
     await widget.mount();
 
     const host = document.getElementById(CONFIG.HOST_ELEMENT_ID);
-    host?.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.click();
+    host?.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
 
     expect(host?.shadowRoot?.querySelector('.sd-panel')).not.toBeNull();
 
@@ -433,7 +433,7 @@ describe('StickyDotWidget Integration', () => {
     await widget.mount();
 
     const host = document.getElementById(CONFIG.HOST_ELEMENT_ID) as HTMLElement;
-    host.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.click();
+    host.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
 
     const panel = host.shadowRoot?.querySelector('.sd-panel') as HTMLElement;
     const header = panel.querySelector('.sd-header') as HTMLElement;
@@ -473,7 +473,7 @@ describe('StickyDotWidget Integration', () => {
     await widget.mount();
 
     const host = document.getElementById(CONFIG.HOST_ELEMENT_ID) as HTMLElement;
-    host.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.click();
+    host.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
 
     const panel = host.shadowRoot?.querySelector('.sd-panel') as HTMLElement;
     const grip = panel.querySelector('.sd-resize-grip') as HTMLElement;
@@ -508,7 +508,7 @@ describe('StickyDotWidget Integration', () => {
     await widget.mount();
 
     const host = document.getElementById(CONFIG.HOST_ELEMENT_ID) as HTMLElement;
-    host.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.click();
+    host.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
 
     const panel = host.shadowRoot?.querySelector('.sd-panel') as HTMLElement;
     const grip = panel.querySelector('.sd-resize-grip') as HTMLElement;
@@ -544,7 +544,7 @@ describe('StickyDotWidget Integration', () => {
     expect(host.style.top).toBe('80px');
     expect(host.style.right).toBe('auto');
 
-    host.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.click();
+    host.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
 
     const panel = host.shadowRoot?.querySelector('.sd-panel') as HTMLElement;
     expect(panel.style.width).toBe('360px');
@@ -558,7 +558,7 @@ describe('StickyDotWidget Integration', () => {
       await widget.mount();
 
       const host = document.getElementById(CONFIG.HOST_ELEMENT_ID) as HTMLElement;
-      host.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.click();
+      host.shadowRoot?.querySelector<HTMLButtonElement>('.sd-chip')?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
       host.shadowRoot?.querySelector<HTMLButtonElement>('.sd-settings-btn')?.click();
 
       return { widget, host };

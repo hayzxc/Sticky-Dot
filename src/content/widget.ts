@@ -362,7 +362,8 @@ export class StickyDotWidget {
       chip.appendChild(badge);
     }
 
-    chip.addEventListener('click', () => {
+    chip.addEventListener('dblclick', (event: MouseEvent) => {
+      event.preventDefault();
       if (this.layout?.consumeClickSuppression()) return;
       this.toggleExpanded(true);
     });
