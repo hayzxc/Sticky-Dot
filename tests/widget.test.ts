@@ -531,6 +531,7 @@ describe('StickyDotWidget Integration', () => {
       ui: {
         expanded: false,
         position: { x: 120, y: 80 },
+        positionOrigin: 'http://localhost:3000',
         size: { width: 360, height: 420 },
       },
     } satisfies StoredState;

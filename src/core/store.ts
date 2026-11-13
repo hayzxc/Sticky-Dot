@@ -7,15 +7,25 @@ export const DEFAULT_STATE: StoredState = {
   ui: {
     expanded: false,
     position: null,
+    positionOrigin: null,
     size: null,
   },
 };
 
-const POSITION_LIMIT = 100000;
+/**
+ * Validates a persisted position origin. Returns null when unset/invalid.
+ */
+export function sanitizePositionOrigin(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  return trimmed ? trimmed : null;
+}
 
 function clampNumber(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
+
+const POSITION_LIMIT = 100000;
 
 /**
  * Validates a persisted widget position. Returns null when unset/invalid.
@@ -215,6 +225,7 @@ export function migrate(raw: unknown): StoredState {
       ui: {
         expanded,
         position: sanitizePosition(ui.position),
+        positionOrigin: sanitizePositionOrigin(ui.positionOrigin),
         size: sanitizeSize(ui.size),
       },
     };

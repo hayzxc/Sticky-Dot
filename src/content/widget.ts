@@ -19,7 +19,7 @@ export class StickyDotWidget {
   private state: StoredState = {
     schemaVersion: 1,
     notes: [],
-    ui: { expanded: false, position: null, size: null },
+    ui: { expanded: false, position: null, positionOrigin: null, size: null },
   };
   private settings: WidgetSettings = { allowedOrigins: [], allSites: false };
   private settingsOpen = false;
@@ -70,6 +70,9 @@ export class StickyDotWidget {
       onGeometryChange: (position, size) => {
         this.state.ui.position = position;
         this.state.ui.size = size;
+        if (position) {
+          this.state.ui.positionOrigin = window.location.origin;
+        }
         this.debouncedSave();
       },
       onInteractionEnd: () => {
@@ -103,6 +106,23 @@ export class StickyDotWidget {
 
     this.state = state;
     this.settings = settings;
+
+    // Jangan pakai posisi/ukuran yang disimpan di situs lain (mencegah widget "lompat" ke tengah).
+    if (this.state.ui.position) {
+      const origin = window.location.origin;
+      const layoutOrigin = this.state.ui.positionOrigin;
+      const isCurrentOriginLayout =
+        layoutOrigin === origin ||
+        (layoutOrigin == null && origin === CONFIG.TARGET_ORIGIN);
+
+      if (!isCurrentOriginLayout) {
+        this.state.ui.position = null;
+        this.state.ui.positionOrigin = null;
+      } else if (layoutOrigin == null) {
+        this.state.ui.positionOrigin = origin;
+      }
+    }
+
     this.lastSavedJson = JSON.stringify(this.state);
     this.layout?.applyLayout(this.state.ui.position, this.state.ui.size);
 
@@ -222,6 +242,18 @@ export class StickyDotWidget {
           externalState.notes[extIndex] = { ...localEditingNote };
         }
       }
+    }
+
+    // Pertahankan layout lokal jika update datang dari situs lain, agar posisi tidak "lompat".
+    const externalLayoutOrigin = externalState.ui.positionOrigin;
+    const sameOriginLayout =
+      externalLayoutOrigin === window.location.origin ||
+      (externalLayoutOrigin == null && window.location.origin === CONFIG.TARGET_ORIGIN);
+
+    if (!sameOriginLayout) {
+      externalState.ui.position = this.state.ui.position;
+      externalState.ui.size = this.state.ui.size;
+      externalState.ui.positionOrigin = this.state.ui.positionOrigin;
     }
 
     this.state = externalState;
@@ -507,6 +539,9 @@ export class StickyDotWidget {
       event.preventDefault();
       event.stopPropagation();
       this.layout?.nudgeSize(deltaWidth, deltaHeight);
+      if (this.state.ui.position) {
+        this.state.ui.positionOrigin = window.location.origin;
+      }
     });
 
     panel.appendChild(grip);

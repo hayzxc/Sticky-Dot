@@ -32,6 +32,8 @@ export interface UIState {
   expanded: boolean;
   /** null = tetap di anchor default kanan atas. */
   position: WidgetPosition | null;
+  /** Origin yang memiliki position/size ini; null = situs utama (kompatibilitas lama). */
+  positionOrigin?: string | null;
   /** null = ukuran panel default (280 px, maks 60vh). */
   size: WidgetSize | null;
 }
